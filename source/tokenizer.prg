@@ -17,6 +17,8 @@ DEFINE CLASS Tokenizer AS Custom
 	* a regular expression engine
 	HIDDEN RegExpr
 	RegExpr = .NULL.
+	* and its class
+	RegExprClass = "VBScript.RegExp"
 
 	* where an error occurred in the string (no patterns available)
 	ErrorPointer = ""
@@ -33,7 +35,7 @@ DEFINE CLASS Tokenizer AS Custom
 						'<memberdata name="errorpointer" type="property" display="ErrorPointer"/>' + ;
 						'<memberdata name="forcestart" type="property" display="ForceStart"/>' + ;
 						'<memberdata name="ignorecase" type="property" display="IgnoreCase"/>' + ;
-						'<memberdata name="regexpr" type="property" display="RegExpr"/>' + ;
+						'<memberdata name="regexprclass" type="property" display="RegExprClass"/>' + ;
 						'<memberdata name="stoppointer" type="property" display="StopPointer"/>' + ;
 						'<memberdata name="tokenpatterns" type="property" display="TokenPatterns"/>' + ;
 						'<memberdata name="tokens" type="property" display="Tokens"/>' + ;
@@ -42,13 +44,28 @@ DEFINE CLASS Tokenizer AS Custom
 						'<memberdata name="gettokens" type="method" display="GetTokens"/>' + ;
 						"</VFPData>"
 
-	PROCEDURE Init
-		This.RegExpr = CREATEOBJECT("VBScript.RegExp")
-		This.RegExpr.Ignorecase = This.IgnoreCase
+	PROCEDURE Init (RXEngine AS String)
+		IF PCOUNT() == 1
+			This.RegExprClass = m.RXEngine
+		ELSE
+			This.SetRegExpr()
+		ENDIF
 	ENDPROC
 
 	PROCEDURE Destroy
 		This.RegExpr = .NULL.
+	ENDPROC
+
+	HIDDEN PROCEDURE SetRegExpr ()
+		This.RegExpr = CREATEOBJECT(This.RegExprClass)
+		This.RegExpr.Ignorecase = This.IgnoreCase
+	ENDPROC
+
+	HIDDEN PROCEDURE RegExprClass_Assign (NewValue AS String)
+		IF VARTYPE(m.NewValue) == "C"
+			This.RegExprClass = m.NewValue
+			This.SetRegExpr()
+		ENDIF
 	ENDPROC
 
 	HIDDEN PROCEDURE IgnoreCase_Assign (NewValue AS Logical)
@@ -61,7 +78,7 @@ DEFINE CLASS Tokenizer AS Custom
 	* AddTokenPattern
 	* add a pattern to the pattern collection
 	* patterns are verified by the order they were added to the collection
-	* a pattern should include at least 2 groups, and must include at least one: one to fetch the value of the token;
+	* a pattern should include at least 2 capturing groups, and must include at least one: one to fetch the value of the token;
 	*  the other to store the actual source that was read and may be skipped for the next step of the parsing process
 	FUNCTION AddTokenPattern (Pattern AS String, Type AS String, ValueGroup AS Integer, SkipGroup AS Integer)
 	
